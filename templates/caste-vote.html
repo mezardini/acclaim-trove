@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AcclaimTrove</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css"
+        integrity="sha384-zCbKRCUGaJDkqS1kPbPd7TveP5iyJE0EjAuZQTgFLD2ylzuqKfdKlfG/eSrtxUkn" crossorigin="anonymous">
+
+    
+
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Vote</h1>
+
+    </div>
+    <div class="container">
+
+<div class="card-deck">
+    {% for nominee in nominees %}
+    <div class="card">
+        <img class="card-img-top" src="{% static 'images/felix.jpg' %}" alt="Card image cap">
+        <div class="card-body">
+            <h5 class="card-title">{{nominee.nominee_name}}</h5>
+            <p class="card-text">{{nominee.nominee_note}}</p>
+        </div>
+        <div class="card-footer ">
+            <div class="text-center">
+                <a href="http://127.0.0.1:8000/cn-vote/{{cn}}/{{dt}}/{{nominee.id}}/" class="btn btn-primary">Vote {{nominee.nominee_name}}</a>
+            </div>
+           
+        </div>
+    </div>
+    {% endfor %}
+    <!-- <div class="card">
+        <img class="card-img-top" src="{% static 'images/mezard.jpg' %}" alt="Card image cap">
+        <div class="card-body">
+            <h5 class="card-title">Card title</h5>
+            <p class="card-text">This card has supporting text below as a natural lead-in to additional content.</p>
+        </div>
+        <div class="card-footer">
+            <small class="text-muted">Last updated 3 mins ago</small>
+        </div>
+    </div> -->
+    
+</div>
+
+
+    </div>
+</body>
+</html>
