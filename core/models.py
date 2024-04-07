@@ -63,26 +63,36 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return f'{self.email}'
 
 
+class Poll(models.Model):
+    organizer = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    month = models.CharField(max_length=20)
+    vote_start = models.DateField(null=True)
+    vote_end = models.DateField(null=True)
+    nominees = models.JSONField(null=True, default=list)
+
+    def __str__(self):
+        return self.organizer.company_name + " for " + self.month
+
+
 class Nominee(models.Model):
     nominee_name = models.CharField(max_length=200)
     nominee_note = models.TextField(null=True, blank=True)
+    nominee_position = models.TextField(null=True, blank=True)
     # nominee_image = models.ImageField(upload_to='media/', default='', null=True, blank=True)
-    month = models.CharField(max_length=20)
-    company = models.ForeignKey(
-        CustomUser, on_delete=models.CASCADE, null=True)
-    vote_count = models.IntegerField(null=True, blank=True, default=0)
+    poll = models.ForeignKey(
+        Poll, on_delete=models.CASCADE, null=True)
+    # vote_count = models.IntegerField(null=True, blank=True, default=0)
 
     def __str__(self):
-        month = self.month
-        return self.company.company_name + " " + self.nominee_name + " " + str(month)
+
+        return self.nominee_name
 
 
 class Vote(models.Model):
-    name_of_voter = models.CharField(max_length=200)
+    poll = models.ForeignKey(
+        Poll, on_delete=models.CASCADE, null=True, blank=True)
     choice = models.ForeignKey(Nominee, on_delete=models.CASCADE)
+    vote_count = models.IntegerField(null=True, blank=True, default=0)
 
     def __str__(self):
-        return self.name
-
-# class Company(models.Model):
-#     company_name = models.CharField(max_length=200)
+        return self.poll.organizer.company_name
