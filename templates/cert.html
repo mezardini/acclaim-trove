@@ -1,139 +1,74 @@
-<div class="div">
-    <div class="div-2">
-        <div class="div-3">
-            <img loading="lazy"
-                src="https://cdn.builder.io/api/v1/image/assets/TEMP/fccdd76c652c46c66c6e485887a5c32b52528b1921f49ff355d9d5a9a68081f6?"
-                class="img" />
-            <div class="div-5">CERTIFICATE OF ACHIEVEMENT</div>
-            <div class="div-5">This certificate is proudly presented to</div>
-            <div class="div-6">Name Surname</div>
-            <div class="div-7">
-                We certify that this user has successfully generated a certificate using
-                PikMaker. If you like, you can generate your own certificates using
-                PikMaker.
-            </div>
-            <div class="div-8">By the PikMaker team</div>
-        </div>
-    </div>
-</div>
 <style>
-    .div {
-        background-color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #000;
-        font-weight: 400;
-        text-align: center;
-        padding: 40px 30px;
-    }
+    body{
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  background: #e1e1e9;
+}
 
-    @media (max-width: 991px) {
-        .div {
-            padding: 0 20px;
-        }
-    }
+div{
+/*   background: pink; */
+  position: relative;
+  height: 415px;
+  width: 300px;
+  margin: 2%;
+  border-radius: 25px;
+  border: 1px solid #9b9ba730;
+  box-shadow: 5px 5px 6px rgb(0 0 0 / 14%), -5px -2px 6px rgb(255 255 255 / 44%);
+  background-image: linear-gradient(242deg, transparent 48px, #eeeeff 65px, transparent 94px, #ebebf9 130px, transparent 155px);
+}
 
-    .div-2 {
-        border-color: rgba(51, 65, 85, 1);
-        border-style: solid;
-        border-width: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        padding: 30px;
-    }
+div::before{
+  content: '';
+  padding: 0 50.3% 16%;
+  border-radius: 18px 18px 3px 3px;
+  background: #cfb3ff;
+  background-image: radial-gradient(#e1e1e9 22.5px, #b3b3bc 36px, #cfb3ff 10.5px);
+  background-size: 55px 18px;
+  background-repeat: no-repeat;
+  background-position: center;
+}
 
-    @media (max-width: 991px) {
-        .div-2 {
-            max-width: 100%;
-            margin-top: 40px;
-            padding: 0 20px;
-        }
-    }
+div::after{
+  content:'';
+  padding: 31% 30%;
+  position: absolute;
+  left: 20%;
+  top: 22%;
+  background: #0ea4d7;
+  background-image: radial-gradient(#ffbb38 26px, #ffffff00 4px), radial-gradient(black 26px, #ffffff00 4px), radial-gradient(white 12px, #ffffff00 4px), radial-gradient(white 12px, #ffffff00 4px),radial-gradient(black 19px, #ffffff00 4px), radial-gradient(black 19px, #ffffff00 4px), radial-gradient(#ffbb38 73px, #ffffff00 4px), radial-gradient(black 5px, #ffffff00 4px), radial-gradient(black 5px, #ffffff00 4px), radial-gradient(#f9deb0 24px, #ffffff00 4px), radial-gradient(black 18px, #ffffff00 4px), radial-gradient(#f9deb0 65px, #ffffff00 47px), radial-gradient(black 67px, #ffffff00 58px), radial-gradient(white 86px, #ffffff00 47px), radial-gradient(white 21px, #ffffff00 22px), radial-gradient(white 21px, #ffffff00 22px), radial-gradient(black 86px, #ffffff00 47px), radial-gradient(black 21px, #ffffff00 22px), radial-gradient(black 21px, #ffffff00 22px);
+  background-position: 52% 189%, 52% 187%, 2% 165%, 105% 165%, -18% 165%, 121% 165%, 50% 199%, 14% 28%, 96% 28%, 47% 7%, 40% 61%, 21px 28px, 2px 14px, 18px 13px, 14px -1px, 93% -1px, 20px 15px, 16px -2px, 95% -1px;
+  background-size: 72% 59%, 72% 59%, 72% 59%, 72% 59%, 79% 59%, 79% 59%, 79% 61%, 62% 71%, 62% 71%, 125% 94%, 127% 73%, 79% 61%, 100% 76%, 83% 75%, 23% 26%, 22% 26%, 83% 75%, 22% 26%, 22% 26%;
+  background-repeat: no-repeat;
+}
 
-    .div-3 {
-        border-color: rgba(13, 111, 251, 1);
-        border-style: solid;
-        border-width: 5px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-    }
+div p{
+  position: absolute;
+  bottom: 20px;
+  text-align: center;
+  width: 100%;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-family: sans-serif;
+  color: #5f5f6d;
+  display: flex;
+  flex-flow: column;
+  align-items: center;
+}
 
-    @media (max-width: 991px) {
-        .div-3 {
-            max-width: 100%;
-            padding: 0 20px;
-        }
-    }
-
-    .div-4 {
-        letter-spacing: 8px;
-        font: 700 40px Inter, sans-serif;
-        margin-top: 30px;
-    }
-
-    @media (max-width: 991px) {
-        .div-4 {
-            max-width: 100%;
-            margin-top: 20px;
-            font-size: 24px;
-        }
-    }
-
-    .div-5 {
-        font: 30px Inter, sans-serif;
-        margin-top: 20px;
-    }
-
-    @media (max-width: 991px) {
-        .div-5 {
-            max-width: 100%;
-            margin-top: 10px;
-            font-size: 18px;
-        }
-    }
-
-    .div-6 {
-        color: #0d6ffb;
-        font: 40px Kaushan Script, sans-serif;
-        margin-top: 20px;
-    }
-
-    @media (max-width: 991px) {
-        .div-6 {
-            max-width: 100%;
-            margin-top: 10px;
-            font-size: 24px;
-        }
-    }
-
-    .div-7 {
-        font: 30px Inter, sans-serif;
-        margin-top: 20px;
-    }
-
-    @media (max-width: 991px) {
-        .div-7 {
-            max-width: 100%;
-            margin-top: 10px;
-            font-size: 18px;
-        }
-    }
-
-    .div-8 {
-        font: 700 24px Inter, sans-serif;
-        margin-top: 20px;
-    }
-
-    @media (max-width: 991px) {
-        .div-8 {
-            max-width: 100%;
-            margin-top: 10px;
-            font-size: 16px;
-        }
-    }
+div p:after{
+  content: '';
+  background-image: linear-gradient(90deg, black 2px, transparent 4px),linear-gradient(90deg, transparent 7px, black 0px);
+  background-repeat: repeat;
+  padding: 10% 30%;
+  background-position: 2px 20px, 36px 20px;
+  background-size: 8px 24px, 9px 12px;
+  position: relative;
+  top: 15px;
+  width: 16%;
+}
 </style>
+
+<div>
+    <p>Finn the Human</p>
+</div>

@@ -1,3 +1,5 @@
+from django.shortcuts import redirect
+import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, redirect, get_object_or_404, HttpResponse, get_object_or_404
 from django.views import View
@@ -9,13 +11,18 @@ import datetime
 from datetime import datetime, date, timedelta
 from django.template.defaultfilters import slugify
 import imgkit
+from django.http import HttpResponse
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
+from PIL import Image
+import io
+import cv2
 
 
 def home(request):
 
-    return HttpResponse('Welcome to Acclaimtrove')
-    # imgkit.from_file('templates/cert.html', 'out2.jpg')
-    # return render(request, 'cert.html')
+    return HttpResponse('home')
 
 
 class RegisterUser(View):
@@ -95,7 +102,7 @@ class Dashboard(View):
 
         # Filter past polls based on the current date
         past_polls = [
-            poll for poll in all_polls if poll.month < formatted_date]
+            poll for poll in all_polls if poll.month > formatted_date]
 
         try:
             poll = Poll.objects.get(organizer=company, month=formatted_date)
@@ -116,7 +123,7 @@ class Dashboard(View):
             'poll': poll,
             'nominees': nominees,
             'leaderboard': leaderboard,
-            'past_polls': all_polls,
+            'past_polls': past_polls,
         }
         return render(request, self.template_name, context)
 
@@ -161,6 +168,42 @@ def create_poll(request, slug):
         return redirect('c-vote', company.slug, poll.month)
 
     return render(request, 'create-pollx.html')
+
+
+def edit_poll(request, slug, slugx):
+    company = User.objects.get(slug=slug)
+    poll = Poll.objects.get(organizer=company, month=slugx)
+
+    nominees = poll.nominees
+
+    if request.method == 'POST':
+        new_nominees = []
+        employee_names = request.POST.getlist('employee_name')
+        employee_positions = request.POST.getlist('employee_position')
+        achievements = request.POST.getlist('achievement')
+
+        for name, position, achievement in zip(employee_names, employee_positions, achievements):
+            # Create a new nominee dictionary
+            new_nominee = {
+                'name': name,
+                'position': position,
+                'note': achievement
+            }
+            new_nominees.append(new_nominee)
+
+        # Update existing vote counts
+        for nominee, new_nominee in zip(nominees, new_nominees):
+            new_nominee['vote_count'] = nominee['vote_count']
+
+        # Update nominees in the poll
+        poll.nominees = new_nominees
+        poll.save()
+
+        # Redirect to some success page or another view
+        return redirect('dashboard', company.slug)
+
+    context = {'poll': poll, 'nominees': nominees}
+    return render(request, 'edit-poll.html', context)
 
 
 def caste_vote(request, slug, slugx):
@@ -213,3 +256,77 @@ def count_vote(request, slug, slugx, slugz):
     # #            'nominees': nominees, 'cn': slug, 'dt': slugx}
 
     return render(request, 'voted.html')
+
+
+def download_certificate(request, slug, slugx):
+    company = User.objects.get(slug=slug)
+    poll = Poll.objects.get(organizer=company, month=slugx)
+    nominees = poll.nominees
+
+    # Initialize variables to store the highest vote count and the corresponding nominee name
+    highest_vote_count = 0
+    highest_vote_nominee = None
+
+    # Iterate through the list of nominees to find the one with the highest vote count
+    for nominee in nominees:
+        vote_count = nominee.get('vote_count', 0)
+        if vote_count > highest_vote_count:
+            highest_vote_count = vote_count
+            highest_vote_nominee = nominee.get('name')
+
+    # Check if a nominee with the highest vote count was found
+    if highest_vote_nominee:
+        # Use the nominee name with the highest vote count
+        awardee_name = highest_vote_nominee
+    else:
+        # If no nominee was found, set a default name
+        awardee_name = "No Awardee"
+
+    certificate_path = generate_certificate(
+        awardee_name, company.company_name, poll.month)
+
+    # Open the generated certificate file
+    with open(certificate_path, 'rb') as f:
+        certificate_data = f.read()
+
+    # Create an HTTP response with the certificate image data
+    response = HttpResponse(certificate_data, content_type='image/png')
+    response['Content-Disposition'] = f'attachment; filename="{awardee_name}-{poll.month}.png"'
+
+    return response
+
+
+def generate_certificate(awardee_name, company_name, month):
+
+    template = cv2.imread('templates/certy.png')
+
+    cv2.putText(template, awardee_name, (703, 905),
+                cv2.FONT_HERSHEY_DUPLEX, 3, (142, 75, 80), 8, cv2.LINE_AA)
+    cv2.putText(template, month, (830, 1130),
+                cv2.FONT_HERSHEY_DUPLEX, 2, (00, 00, 00), 5, cv2.LINE_AA)
+    text = company_name
+    font = cv2.FONT_HERSHEY_DUPLEX
+    font_scale = 3
+    font_thickness = 8
+    text_color = (142, 75, 80)
+    line_type = cv2.LINE_AA
+
+    # Get the width and height of the text
+    text_size, _ = cv2.getTextSize(text, font, font_scale, font_thickness)
+
+    # Calculate the starting position for right alignment
+    text_width = text_size[0]
+    text_height = text_size[1]
+    # Adjust the Y position as needed
+    position = (template.shape[1] - text_width - 10, 113)
+
+    # Render the text with right alignment
+    cv2.putText(template, text, position, font, font_scale,
+                text_color, font_thickness, line_type)
+    cv2.putText(template, 'July 01, 2024', (890, 1290),
+                cv2.FONT_HERSHEY_DUPLEX, 1.5, (00, 00, 00), 2, cv2.LINE_AA)
+
+    certificate_path = f'core/{awardee_name}-{month}.png'
+    cv2.imwrite(certificate_path, template)
+
+    return certificate_path
