@@ -10,19 +10,28 @@ from django.contrib.auth.models import auth
 import datetime
 from datetime import datetime, date, timedelta
 from django.template.defaultfilters import slugify
-import imgkit
 from django.http import HttpResponse
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.lib.utils import ImageReader
 from PIL import Image
 import io
 import cv2
 
 
 def home(request):
+    # image_path = 'templates/page.png'
 
-    return HttpResponse('home')
+    # # Open the image file in binary mode
+    # with open(image_path, 'rb') as f:
+    #     image_data = f.read()
+
+    # # Create an HTTP response with the image content
+    # response = HttpResponse(image_data, content_type='image/png')
+
+    # # Optionally, set additional HTTP headers if needed
+    # # For example, to cache the image for a certain duration
+    # response['Cache-Control'] = 'max-age=3600'  # Cache for 1 hour
+
+    # return response
+    return render(request, 'home.html')
 
 
 class RegisterUser(View):
@@ -97,33 +106,39 @@ class Dashboard(View):
         current_date = datetime.today()
         formatted_date = current_date.strftime('%B-%Y')
 
+        today_date = datetime.today().date()
+
         company = User.objects.get(slug=slug)
         all_polls = Poll.objects.filter(organizer=company).order_by("-id")
+
+        active_polls = [
+            poll for poll in all_polls if poll.vote_end >= today_date]
 
         # Filter past polls based on the current date
         past_polls = [
             poll for poll in all_polls if poll.month > formatted_date]
 
-        try:
-            poll = Poll.objects.get(organizer=company, month=formatted_date)
-            nominees = poll.nominees
-            leaderboard = sorted(
-                nominees, key=lambda x: x['vote_count'], reverse=True)
-            # past_nominees = all_polls.nominees
-            # past_leaderboard = sorted(
-            #     past_nominees, key=lambda x: x['vote_count'], reverse=True)
+        # try:
+        #     poll = Poll.objects.get(organizer=company, month=formatted_date)
+        #     nominees = poll.nominees
+        #     leaderboard = sorted(
+        #         nominees, key=lambda x: x['vote_count'], reverse=True)
+        #     # past_nominees = all_polls.nominees
+        #     # past_leaderboard = sorted(
+        #     #     past_nominees, key=lambda x: x['vote_count'], reverse=True)
 
-        except ObjectDoesNotExist:
-            poll = None
-            nominees = []
-            leaderboard = []
+        # except ObjectDoesNotExist:
+        #     poll = None
+        #     nominees = []
+        #     leaderboard = []
 
         context = {
             'company': company,
-            'poll': poll,
-            'nominees': nominees,
-            'leaderboard': leaderboard,
+            # 'poll': poll,
+            # 'nominees': nominees,
+            # 'leaderboard': leaderboard,
             'past_polls': past_polls,
+            'active_polls': active_polls
         }
         return render(request, self.template_name, context)
 
@@ -133,12 +148,14 @@ def create_poll(request, slug):
     company = User.objects.get(slug=slug)
 
     if request.method == 'POST':
+        title = request.POST.get('poll_title')
         current_date = datetime.today()
         formatted_date = current_date.strftime('%B-%Y')
         vote_start_date = current_date.strftime('%Y-%m-%d')
-        vote_end_date = current_date.replace(
-            day=1, month=current_date.month+1) - timedelta(days=1)
-        end_date = vote_end_date.strftime("%Y-%m-%d")
+        date_str = request.POST.get('end_date')
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+
+        vote_end_date = date_obj.strftime('%Y-%m-%d')
 
         nominee_names = request.POST.getlist('employee_name')
         nominee_positions = request.POST.getlist('employee_position')
@@ -159,85 +176,124 @@ def create_poll(request, slug):
         poll = Poll.objects.create(
             organizer=company,
             month=formatted_date,
+            title=title,
             vote_start=vote_start_date,
-            vote_end=end_date,
+            vote_end=vote_end_date,
             nominees=nominees_data
         )
         poll.save()
 
-        return redirect('c-vote', company.slug, poll.month)
+        return redirect('c-vote', company.slug, poll.month, poll.id)
 
     return render(request, 'create-pollx.html')
 
 
-def edit_poll(request, slug, slugx):
+def edit_poll(request, slug, pk):
     company = User.objects.get(slug=slug)
-    poll = Poll.objects.get(organizer=company, month=slugx)
+    poll = Poll.objects.get(organizer=company,  id=pk)
+
+    vote_end_date = poll.vote_end.strftime('%Y-%m-%d')
 
     nominees = poll.nominees
 
     if request.method == 'POST':
         new_nominees = []
+        date_str = request.POST.get('end_date')
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+
+        vote_end_date = date_obj.strftime('%Y-%m-%d')
+        title = request.POST.get('poll_title')
+
+        # Extract new nominee details from the form
         employee_names = request.POST.getlist('employee_name')
         employee_positions = request.POST.getlist('employee_position')
         achievements = request.POST.getlist('achievement')
 
+        # Ensure that each nominee has non-empty details before adding it
         for name, position, achievement in zip(employee_names, employee_positions, achievements):
-            # Create a new nominee dictionary
-            new_nominee = {
-                'name': name,
-                'position': position,
-                'note': achievement
-            }
-            new_nominees.append(new_nominee)
+            if name.strip() and position.strip() and achievement.strip():
+                # Create a new nominee dictionary with default vote_count as 0
+                new_nominee = {
+                    'name': name,
+                    'position': position,
+                    'note': achievement,
+                    'vote_count': 0  # Default vote_count
+                }
+                new_nominees.append(new_nominee)
 
-        # Update existing vote counts
+        # Update existing vote counts if applicable
         for nominee, new_nominee in zip(nominees, new_nominees):
-            new_nominee['vote_count'] = nominee['vote_count']
+            # Keep the existing vote_count if present
+            new_nominee['vote_count'] = nominee.get('vote_count', 0)
 
         # Update nominees in the poll
+        poll.title = title
+        poll.vote_end = vote_end_date
         poll.nominees = new_nominees
         poll.save()
 
         # Redirect to some success page or another view
         return redirect('dashboard', company.slug)
 
-    context = {'poll': poll, 'nominees': nominees}
+    context = {'poll': poll, 'nominees': nominees,
+               'vote_end_date': vote_end_date}
     return render(request, 'edit-poll.html', context)
 
 
-def caste_vote(request, slug, slugx):
+def caste_vote(request, slug, title):
 
     company = User.objects.get(slug=slug)
 
-    poll = Poll.objects.get(organizer=company, month=slugx)
+    poll = Poll.objects.get(organizer=company, title=title)
+
+    date = datetime.today().date()
+
+    # if poll.vote_end > date:
 
     nominees = poll.nominees
 
-    leaderboardx = Vote.objects.filter(poll=poll)
+    leaderboard = sorted(
+        nominees, key=lambda x: x['vote_count'], reverse=True)
 
-    queryset = leaderboardx
+    highest_vote_count = 0
+    highest_vote_nominee = None
 
-    leaderboard = queryset.order_by('-vote_count')
+    for nominee in nominees:
+        vote_count = nominee.get('vote_count', 0)
+        if vote_count > highest_vote_count:
+            highest_vote_count = vote_count
+            highest_vote_nominee = nominee.get('name')
+
+    # Check if a nominee with the highest vote count was found
+    if highest_vote_nominee:
+        # Use the nominee name with the highest vote count
+        awardee_name = highest_vote_nominee
+    else:
+        # If no nominee was found, set a default name
+        awardee_name = "No Awardee"
+
+    # else:
+    #     date
+
+    #     # return render(request, 'vote-ended.html')
 
     context = {'company': company, 'poll': poll,
-               'nominees': nominees, 'leaderboard': leaderboard, 'cn': slug, 'dt': slugx}
+               'nominees': nominees, 'leaderboard': awardee_name, 'cn': slug, 'date': date}
 
     return render(request, 'caste-votex.html', context)
 
 
-def count_vote(request, slug, slugx, slugz):
+def count_vote(request, slug, pk, slugz):
 
     company = User.objects.get(slug=slug)
 
-    poll = Poll.objects.get(organizer=company, month=slugx)
+    poll = Poll.objects.get(organizer=company,  id=pk)
 
     nominee_name = slugz
 
     # Retrieve the nominees' data from the 'nominees' field
     nominees_data = poll.nominees
 
-    # Find the nominee you want to update and update their vote count
     for nominee in nominees_data:
         if nominee['name'] == nominee_name:
             nominee['vote_count'] += 1  # Increment vote count by 1
@@ -245,22 +301,17 @@ def count_vote(request, slug, slugx, slugz):
     poll.nominees = nominees_data
     poll.save()
 
-    # nominee = Nominee.objects.get(id=slugz)
+    return redirect('voted')
 
-    # vote = Vote.objects.get(poll=poll, choice=nominee)
-    # # nominee = nominees.get(nominee_name=slugz)
-    # vote.vote_count += 1
-    # vote.save()
 
-    # # context = {'company': company,
-    # #            'nominees': nominees, 'cn': slug, 'dt': slugx}
+def thanks_for_voting(request):
 
     return render(request, 'voted.html')
 
 
-def download_certificate(request, slug, slugx):
+def download_certificate(request, slug,  pk):
     company = User.objects.get(slug=slug)
-    poll = Poll.objects.get(organizer=company, month=slugx)
+    poll = Poll.objects.get(organizer=company, id=pk)
     nominees = poll.nominees
 
     # Initialize variables to store the highest vote count and the corresponding nominee name
@@ -282,28 +333,41 @@ def download_certificate(request, slug, slugx):
         # If no nominee was found, set a default name
         awardee_name = "No Awardee"
 
-    certificate_path = generate_certificate(
-        awardee_name, company.company_name, poll.month)
-
-    # Open the generated certificate file
-    with open(certificate_path, 'rb') as f:
-        certificate_data = f.read()
+    certificate_data = generate_certificate(
+        awardee_name, company.company_name, poll.month, poll.title)
 
     # Create an HTTP response with the certificate image data
-    response = HttpResponse(certificate_data, content_type='image/png')
-    response['Content-Disposition'] = f'attachment; filename="{awardee_name}-{poll.month}.png"'
+    response = HttpResponse(content_type='image/png')
+    response['Content-Disposition'] = f'attachment; filename="{awardee_name}-{poll.title}.png"'
+    response.write(certificate_data.getvalue())
 
     return response
 
 
-def generate_certificate(awardee_name, company_name, month):
+def generate_certificate(awardee_name, company_name, month, title):
+
+    month = month.replace("-", " ")
 
     template = cv2.imread('templates/certy.png')
 
-    cv2.putText(template, awardee_name, (703, 905),
-                cv2.FONT_HERSHEY_DUPLEX, 3, (142, 75, 80), 8, cv2.LINE_AA)
-    cv2.putText(template, month, (830, 1130),
-                cv2.FONT_HERSHEY_DUPLEX, 2, (00, 00, 00), 5, cv2.LINE_AA)
+    font = cv2.FONT_HERSHEY_DUPLEX
+    font_scale = 3
+    font_thickness = 8
+    text_color = (142, 75, 80)
+    line_type = cv2.LINE_AA
+
+    # Get the size of the text
+    text_size, _ = cv2.getTextSize(
+        awardee_name, font, font_scale, font_thickness)
+    text_width, text_height = text_size
+
+    # Calculate the starting position to center the text horizontally
+    x = (template.shape[1] - text_width) // 2
+    y = 905  # Adjust the y-coordinate as needed
+
+    # Render the text at the calculated position
+    cv2.putText(template, awardee_name, (x, y), font, font_scale,
+                text_color, font_thickness, line_type)
     text = company_name
     font = cv2.FONT_HERSHEY_DUPLEX
     font_scale = 3
@@ -323,10 +387,39 @@ def generate_certificate(awardee_name, company_name, month):
     # Render the text with right alignment
     cv2.putText(template, text, position, font, font_scale,
                 text_color, font_thickness, line_type)
-    cv2.putText(template, 'July 01, 2024', (890, 1290),
-                cv2.FONT_HERSHEY_DUPLEX, 1.5, (00, 00, 00), 2, cv2.LINE_AA)
 
-    certificate_path = f'core/{awardee_name}-{month}.png'
-    cv2.imwrite(certificate_path, template)
+    # Define font sizes and colors
+    month_font_scale = 2
+    title_font_scale = 1.5
+    font_thicknessx = 5
+    text_color = (0, 0, 0)  # Black color
 
-    return certificate_path
+    # Get the size of the month text
+    month_text_size, _ = cv2.getTextSize(
+        month, font, month_font_scale, font_thicknessx)
+    month_text_width, _ = month_text_size
+
+    # Calculate the starting position to center the month text horizontally
+    month_x = (template.shape[1] - month_text_width) // 2
+    month_y = 1130  # Adjust the y-coordinate as needed
+
+    # Get the size of the title text
+    title_text_size, _ = cv2.getTextSize(
+        title, font, title_font_scale, font_thicknessx)
+    title_text_width, _ = title_text_size
+
+    # Calculate the starting position to center the title text horizontally
+    title_x = (template.shape[1] - title_text_width) // 2
+    title_y = 647  # Adjust the y-coordinate as needed
+
+    # Render the month text at the calculated position
+    cv2.putText(template, month, (month_x, month_y), font,
+                month_font_scale, text_color, font_thickness, line_type)
+
+    # Render the title text at the calculated position
+    cv2.putText(template, title, (title_x, title_y), font,
+                1.5, text_color, 2, line_type)
+
+    _, buffer = cv2.imencode('.png', template)
+
+    return io.BytesIO(buffer)

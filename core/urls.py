@@ -8,10 +8,13 @@ urlpatterns = [
     path('login/', LoginUser.as_view(), name='login'),
     path('dashboard/<str:slug>/', Dashboard.as_view(), name='dashboard'),
     path('create-poll/<str:slug>/', views.create_poll, name='c-poll'),
-    path('edit-poll/<str:slug>/<str:slugx>/', views.edit_poll, name='e-poll'),
-    path('c-vote/<str:slug>/<str:slugx>/', views.caste_vote, name='c-vote'),
-    path('cn-vote/<str:slug>/<str:slugx>/<str:slugz>/',
+    path('edit-poll/<str:slug>/<int:pk>/',
+         views.edit_poll, name='e-poll'),
+    path('poll/<str:slug>/<str:title>/',
+         views.caste_vote, name='c-vote'),
+    path('cn-vote/<str:slug>/<str:slugx>/<str:slugz>/<int:pk>/',
          views.count_vote, name='cn-vote'),
-    path('gen-cert/<str:slug>/<str:slugx>/',
-         views.download_certificate, name="print_cert")
+    path('gen-cert/<str:slug>/<int:pk>/',
+         views.download_certificate, name="print_cert"),
+    path('voted/', views.thanks_for_voting, name='voted'),
 ]

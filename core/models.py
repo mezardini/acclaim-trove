@@ -66,12 +66,13 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 class Poll(models.Model):
     organizer = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     month = models.CharField(max_length=20)
+    title = models.CharField(max_length=250, null=True, unique=True)
     vote_start = models.DateField(null=True)
     vote_end = models.DateField(null=True)
     nominees = models.JSONField(null=True, default=list)
 
     def __str__(self):
-        return self.organizer.company_name + " for " + self.month
+        return self.organizer.company_name + " - " + str(self.title)
 
 
 class Nominee(models.Model):

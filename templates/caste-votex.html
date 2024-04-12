@@ -1,85 +1,211 @@
 <!DOCTYPE html>
 {% load static %}
 <html lang="en">
-
-<head>
+  <head>
     <!-- Required meta tags -->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Skydash Admin</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <title>AcclaimTrove - Poll</title>
     <!-- plugins:css -->
-    <link rel="stylesheet" href="{% static 'vendors/feather/feather.css' %}">
-    <link rel="stylesheet" href="{% static 'vendors/ti-icons/css/themify-icons.css' %}">
-    <link rel="stylesheet" href="{% static 'vendors/css/vendor.bundle.base.css' %}">
+    <link rel="stylesheet" href="{% static 'vendors/feather/feather.css' %}" />
+    <link
+      rel="stylesheet"
+      href="{% static 'vendors/ti-icons/css/themify-icons.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'vendors/css/vendor.bundle.base.css' %}"
+    />
     <!-- endinject -->
     <!-- Plugin css for this page -->
-    <link rel="stylesheet" href="{% static 'vendors/datatables.net-bs4/dataTables.bootstrap4.css' %}">
-    <link rel="stylesheet" href="{% static 'vendors/ti-icons/css/themify-icons.css' %}">
-    <link rel="stylesheet" type="text/css" href="{% static 'js/select.dataTables.min.css' %}">
-    <link rel="stylesheet" href="{% static 'path/to/font-awesome/css/font-awesome.min.css' %}">
+    <link
+      rel="stylesheet"
+      href="{% static 'vendors/datatables.net-bs4/dataTables.bootstrap4.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="{% static 'vendors/ti-icons/css/themify-icons.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{% static 'js/select.dataTables.min.css' %}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://use.fontawesome.com/releases/v5.7.2/css/all.css"
+      integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr"
+      crossorigin="anonymous"
+    />
+
     <!-- End plugin css for this page -->
     <!-- inject:css -->
-    <link rel="stylesheet" href="{% static 'css/vertical-layout-light/style.css' %}">
+    <link
+      rel="stylesheet"
+      href="{% static 'css/vertical-layout-light/style.css' %}"
+    />
     <!-- endinject -->
     <link rel="shortcut icon" href="{% static 'images/favicon.svg' %}" />
-</head>
+  </head>
 
-<body>
+  <body>
     <div class="container-scroller">
-        <div class="container-fluid page-body-wrapper full-page-wrapper">
-            <div class="content-wrapper d-flex align-items-center auth px-0">
-                <div class="row w-100 mx-0">
-                    <div class="col-lg-9 mx-auto">
-                        <div class="auth-form-light text-left py-5 px-4 px-sm-5">
-                            <div class="brand-logo text-center">
-                                <h1>{{company.company_name}}</h1>
-                            </div>
-                            <h4 class="text-center">Employee of the month poll - {{poll.month}}</h4>
-                            <br>
-                            <br>
-
-                            <div class="card-deck">
-                                {% for nominee in nominees %}
-                                <div class="card" style="border: 1px solid #4B49AC; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-                                    <div class="card-body">
-                                        <h5 class="card-title text-center mb-3" style="font-size: 28px; color: #4B49AC;">{{nominee.name}}</h5>
-                                        <h6 class="card-subtitle text-center mb-4" style="font-size: 20px; color: #6c757d;">{{nominee.position}}</h6>
-                                        <p class="card-text text-center" style="font-size: 18px; color: #495057;">{{nominee.note}}</p>
-                                    </div>
-                                    <div class="card-footer bg-transparent border-top-0">
-                                        <div class="d-flex justify-content-center">
-                                            <a href="http://127.0.0.1:8000/cn-vote/{{cn}}/{{dt}}/{{nominee.name}}/" class="btn btn-primary btn-lg">Vote {{nominee.name}}</a>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-
-                              
-                            </div>
-                            
-                        </div>
-                    </div>
+      <div class="container-fluid page-body-wrapper full-page-wrapper">
+        <div class="content-wrapper d-flex align-items-center auth px-0">
+          <div class="row w-100 mx-0">
+            <div class="col-lg-9 mx-auto">
+              <div class="auth-form-light text-left py-5 px-4 px-sm-5">
+                <div class="brand-logo text-center">
+                  <h1>{{company.company_name}}</h1>
                 </div>
+                <h4 class="text-center">
+                  {{poll.title}}
+                </h4>
+                <!-- Add the share URL button here -->
+                <!-- <div class="text-center">
+                  <button
+                    onclick="copyPollURL()"
+                    class="btn btn-outline-primary mt-3"
+                  >
+                    <i class="fa fa-share"></i> Share Poll
+                  </button>
+                </div> -->
+                <br />
+                <br />
+                {% if date <= poll.vote_end %}
+                <div class="row">
+                  {% for nominee in nominees %}
+                  <div
+                    class="card col-md-6 mb-4"
+                    style="
+                      border: 1px solid #4b49ac;
+                      border-radius: 10px;
+                      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                    "
+                  >
+                    <div class="card-body">
+                      <h5
+                        class="card-title text-center mb-3"
+                        style="font-size: 28px; color: #4b49ac"
+                      >
+                        {{nominee.name}}
+                      </h5>
+                      <h6
+                        class="card-subtitle text-center mb-4"
+                        style="font-size: 20px; color: #6c757d"
+                      >
+                        {{nominee.position}}
+                      </h6>
+                      <p
+                        class="card-text text-center"
+                        style="font-size: 18px; color: #495057"
+                      >
+                        {{nominee.note}}
+                      </p>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0">
+                      <div class="d-flex justify-content-center">
+                        <a
+                          href="http://127.0.0.1:8000/cn-vote/{{cn}}/{{dt}}/{{nominee.name}}/{{id}}"
+                          class="btn btn-primary btn-lg"
+                          >Vote {{nominee.name}}</a
+                        >
+                      </div>
+                    </div>
+                  </div>
+                  <br>
+                  {% endfor %}
+                </div>
+                
+                {% else%}
+                <div class="card-deck">
+                  {% for nominee in nominees %}
+                  <div
+                    class="card"
+                    style="
+                      border: 1px solid #4b49ac;
+                      border-radius: 10px;
+                      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                    "
+                  >
+                    <div class="card-body">
+                      {% if nominee.name == leaderboard %}
+                      <h5
+                        class="card-title text-center mb-3"
+                        style="font-size: 28px; color: #4b49ac"
+                      >
+                        <img src="{% static 'images/badge3.svg' %}" alt="" />
+                        {{nominee.name}}
+                      </h5>
+                      {% else %}
+                      <h5
+                        class="card-title text-center mb-3"
+                        style="font-size: 28px; color: #4b49ac"
+                      >
+                        {{nominee.name}}
+                      </h5>
+                      {% endif %}
+                      <h6
+                        class="card-subtitle text-center mb-4"
+                        style="font-size: 20px; color: #6c757d"
+                      >
+                        {{nominee.position}}
+                      </h6>
+                      <p
+                        class="card-text text-center"
+                        style="font-size: 18px; color: #495057"
+                      >
+                        {{nominee.note}}
+                      </p>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+                {% endif %}
+              </div>
             </div>
-            <!-- content-wrapper ends -->
+          </div>
         </div>
-        
-        <!-- page-body-wrapper ends -->
+      </div>
+
+      <!-- page-body-wrapper ends -->
     </div>
     <!-- container-scroller -->
     <footer class="footer">
-        <div class="d-sm-flex justify-content-center">
-            <span class="text-muted text-center text-sm-left d-block d-sm-inline-block">Powered by <a
-                    href="https://www.bootstrapdash.com/" target="_blank">AcclaimTrove</a></span>
-            <!-- <span class="float-none float-sm-right d-block mt-1 mt-sm-0 text-center">Hand-crafted & made with <i
+      <div class="d-sm-flex justify-content-center">
+        <span
+          class="text-muted text-center text-sm-left d-block d-sm-inline-block"
+          >Powered by
+          <a href="https://www.bootstrapdash.com/" target="_blank"
+            >AcclaimTrove</a
+          ></span
+        >
+        <!-- <span class="float-none float-sm-right d-block mt-1 mt-sm-0 text-center">Hand-crafted & made with <i
                     class="ti-heart text-danger ml-1"></i></span> -->
-        </div>
-        <!-- <div class="d-sm-flex justify-content-center justify-content-sm-between">
+      </div>
+      <!-- <div class="d-sm-flex justify-content-center justify-content-sm-between">
             <span class="text-muted text-center text-sm-left d-block d-sm-inline-block">Distributed by <a
                     href="https://www.themewagon.com/" target="_blank">Themewagon</a></span>
         </div> -->
     </footer>
     <!-- plugins:js -->
+    <script>
+      function copyPollURL() {
+        var pollURL =
+          "http://127.0.0.1:8000/vote/{{company.slug}}/{{poll.month}}/"; // Replace this with the actual URL
+        navigator.clipboard.writeText(pollURL).then(
+          function () {
+            alert("URL copied to clipboard: " + pollURL);
+          },
+          function (err) {
+            console.error("Could not copy text: ", err);
+          }
+        );
+      }
+    </script>
     <script src="{% static '../../vendors/js/vendor.bundle.base.js' %}"></script>
     <!-- endinject -->
     <!-- Plugin js for this page -->
@@ -91,26 +217,28 @@
     <script src="{% static '../../js/settings.js' %}"></script>
     <script src="{% static '../../js/todolist.js' %}"></script>
     <script>
-        document.getElementById('addFieldBtn').addEventListener('click', function () {
-            var additionalFieldsContainer = document.getElementById('additionalFields');
+      document
+        .getElementById("addFieldBtn")
+        .addEventListener("click", function () {
+          var additionalFieldsContainer =
+            document.getElementById("additionalFields");
 
-            // Clone the structure of the initial form group
-            var initialFields = document.getElementById('initialFields');
-            var newFormGroup = initialFields.cloneNode(true);
+          // Clone the structure of the initial form group
+          var initialFields = document.getElementById("initialFields");
+          var newFormGroup = initialFields.cloneNode(true);
 
-            // Update the input name attribute
-            var inputElement = newFormGroup.querySelector('input');
-            inputElement.name = 'employee_name';
+          // Update the input name attribute
+          var inputElement = newFormGroup.querySelector("input");
+          inputElement.name = "employee_name";
 
-            // Update the textarea name attribute
-            var textareaElement = newFormGroup.querySelector('textarea');
-            textareaElement.name = 'achievement';
+          // Update the textarea name attribute
+          var textareaElement = newFormGroup.querySelector("textarea");
+          textareaElement.name = "achievement";
 
-            // Append the cloned form group to the container
-            additionalFieldsContainer.appendChild(newFormGroup);
+          // Append the cloned form group to the container
+          additionalFieldsContainer.appendChild(newFormGroup);
         });
     </script>
     <!-- endinject -->
-</body>
-
+  </body>
 </html>
