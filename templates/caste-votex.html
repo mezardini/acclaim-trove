@@ -59,7 +59,7 @@
             <div class="col-lg-9 mx-auto">
               <div class="auth-form-light text-left py-5 px-4 px-sm-5">
                 <div class="brand-logo text-center">
-                  <h1>{{company.company_name}}</h1>
+                  <h1 class="fw-bold fs-6"> <strong>{{company.company_name}}</strong></h1>
                 </div>
                 <h4 class="text-center">
                   {{poll.title}}
@@ -78,8 +78,9 @@
                 {% if date <= poll.vote_end %}
                 <div class="row">
                   {% for nominee in nominees %}
+                  <div class="col-md-6 mb-4 stretch-card transparent">
                   <div
-                    class="card col-md-6 mb-4"
+                    class="card "
                     style="
                       border: 1px solid #4b49ac;
                       border-radius: 10px;
@@ -115,6 +116,7 @@
                         >
                       </div>
                     </div>
+                  </div>
                   </div>
                   <br>
                   {% endfor %}

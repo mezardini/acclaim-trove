@@ -1,17 +1,21 @@
 from django.shortcuts import redirect
 import json
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404, HttpResponse, get_object_or_404
 from django.views import View
 from django.http import HttpResponse
-from .models import Nominee, Vote, CustomUser as User, Poll
+from django.contrib.auth import authenticate, login, logout
+from .models import Employee, CustomUser as User, Poll, Leaderboard
 from django.contrib import messages
 from django.contrib.auth.models import auth
 import datetime
 from datetime import datetime, date, timedelta
 from django.template.defaultfilters import slugify
 from django.http import HttpResponse
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
+from django.core.mail import send_mail, send_mass_mail
 import io
 import cv2
 
@@ -31,7 +35,25 @@ def home(request):
     # response['Cache-Control'] = 'max-age=3600'  # Cache for 1 hour
 
     # return response
-    return render(request, 'home.html')
+    return render(request, 'index.html')
+
+
+def contact(request):
+
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        message = request.POST.get('message')
+
+        send_mail(
+            'Hey Mezard, you have got a message from email: ' + email,
+            message,
+            'settings.EMAIL_HOST_USER',
+            ['mezardini@gmail.com'],
+            fail_silently=False,
+        )
+
+
+    return redirect('home')
 
 
 class RegisterUser(View):
@@ -93,16 +115,26 @@ class LoginUser(View):
 
             if user is not None:
                 auth.login(request, user)
-                return redirect('home')
+                return redirect('dashboard', user.slug)
             else:
                 messages.error(request, "Password Incorrect.")
                 return redirect('login')
 
 
-class Dashboard(View):
+class Dashboard(LoginRequiredMixin, View):
+    login_url = 'login'
     template_name = 'dashboard.html'
 
     def get(self, request, slug):
+        company = User.objects.get(slug=slug)
+        add = 'add'
+        remove = 'remove'
+
+        # if request.user.slug != company.slug:
+
+        #     return redirect('dashboard', request.user.slug)
+
+        # else:
         current_date = datetime.today()
         formatted_date = current_date.strftime('%B-%Y')
 
@@ -110,84 +142,104 @@ class Dashboard(View):
 
         company = User.objects.get(slug=slug)
         all_polls = Poll.objects.filter(organizer=company).order_by("-id")
+        leaderboards = Leaderboard.objects.filter(organizer=company)
 
         active_polls = [
             poll for poll in all_polls if poll.vote_end >= today_date]
 
         # Filter past polls based on the current date
         past_polls = [
-            poll for poll in all_polls if poll.month > formatted_date]
+            poll for poll in all_polls if poll.vote_end < today_date]
 
-        # try:
-        #     poll = Poll.objects.get(organizer=company, month=formatted_date)
-        #     nominees = poll.nominees
-        #     leaderboard = sorted(
-        #         nominees, key=lambda x: x['vote_count'], reverse=True)
-        #     # past_nominees = all_polls.nominees
-        #     # past_leaderboard = sorted(
-        #     #     past_nominees, key=lambda x: x['vote_count'], reverse=True)
+        past_leaderboards = [
+            leaderbd for leaderbd in leaderboards if leaderbd.month > formatted_date]
 
-        # except ObjectDoesNotExist:
-        #     poll = None
-        #     nominees = []
-        #     leaderboard = []
+        for p_l in past_leaderboards:
+
+            pl = p_l.month.replace('-', ' ')
+            print(pl)
+        try:
+            poll = Leaderboard.objects.get(month=formatted_date)
+            nominees = poll.nominees
+            leaderboard = sorted(
+                nominees, key=lambda x: x['vote_count'], reverse=True)
+            # past_leaderbd = Leaderboard.objects.filter(
+            #     organizer=company).nominees
+            # past_leaderboard = sorted(
+            #     past_leaderbd, key=lambda x: x['vote_count'], reverse=True)
+
+        except ObjectDoesNotExist:
+            poll = None
+            nominees = []
+            leaderboard = []
 
         context = {
             'company': company,
-            # 'poll': poll,
-            # 'nominees': nominees,
-            # 'leaderboard': leaderboard,
+            'poll': poll,
+            'nominees': nominees,
+            'leaderboard': leaderboard,
+            'past_leaderboards': past_leaderboards,
             'past_polls': past_polls,
-            'active_polls': active_polls
+            'active_polls': active_polls,
+            'add': add,
+            'remove': remove,
+            'p_l': pl,
         }
         return render(request, self.template_name, context)
 
 
+@login_required(login_url='login')
 def create_poll(request, slug):
 
     company = User.objects.get(slug=slug)
+    if request.user.slug != company.slug:
 
-    if request.method == 'POST':
-        title = request.POST.get('poll_title')
-        current_date = datetime.today()
-        formatted_date = current_date.strftime('%B-%Y')
-        vote_start_date = current_date.strftime('%Y-%m-%d')
-        date_str = request.POST.get('end_date')
-        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+        return redirect('c-poll', request.user.slug)
 
-        vote_end_date = date_obj.strftime('%Y-%m-%d')
+    else:
 
-        nominee_names = request.POST.getlist('employee_name')
-        nominee_positions = request.POST.getlist('employee_position')
-        nominee_notes = request.POST.getlist('achievement')
+        if request.method == 'POST':
+            title = request.POST.get('poll_title')
+            current_date = datetime.today()
+            formatted_date = current_date.strftime('%B-%Y')
+            vote_start_date = current_date.strftime('%Y-%m-%d')
+            date_str = request.POST.get('end_date')
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d')
 
-        nominees_data = []
+            vote_end_date = date_obj.strftime('%Y-%m-%d')
 
-        # Process the data as needed
-        for nominee_name, nominee_position, nominee_note in zip(nominee_names, nominee_positions, nominee_notes):
-            nominee_data = {
-                'name': nominee_name,
-                'position': nominee_position,
-                'note': nominee_note,
-                'vote_count': 0  # Default vote count is set to 0
-            }
-            nominees_data.append(nominee_data)
+            nominee_names = request.POST.getlist('employee_name')
+            nominee_positions = request.POST.getlist('employee_position')
+            nominee_notes = request.POST.getlist('achievement')
 
-        poll = Poll.objects.create(
-            organizer=company,
-            month=formatted_date,
-            title=title,
-            vote_start=vote_start_date,
-            vote_end=vote_end_date,
-            nominees=nominees_data
-        )
-        poll.save()
+            nominees_data = []
 
-        return redirect('c-vote', company.slug, poll.month, poll.id)
+            # Process the data as needed
+            for nominee_name, nominee_position, nominee_note in zip(nominee_names, nominee_positions, nominee_notes):
+                nominee_data = {
+                    'name': nominee_name,
+                    'position': nominee_position,
+                    'note': nominee_note,
+                    'vote_count': 0  # Default vote count is set to 0
+                }
+                nominees_data.append(nominee_data)
 
-    return render(request, 'create-pollx.html')
+            poll = Poll.objects.create(
+                organizer=company,
+                month=formatted_date,
+                title=title,
+                vote_start=vote_start_date,
+                vote_end=vote_end_date,
+                nominees=nominees_data
+            )
+            poll.save()
+
+            return redirect('c-vote', company.slug, poll.month, poll.id)
+
+        return render(request, 'create-pollx.html')
 
 
+@login_required(login_url='login')
 def edit_poll(request, slug, pk):
     company = User.objects.get(slug=slug)
     poll = Poll.objects.get(organizer=company,  id=pk)
@@ -309,6 +361,7 @@ def thanks_for_voting(request):
     return render(request, 'voted.html')
 
 
+@login_required(login_url='login')
 def download_certificate(request, slug,  pk):
     company = User.objects.get(slug=slug)
     poll = Poll.objects.get(organizer=company, id=pk)
@@ -344,82 +397,275 @@ def download_certificate(request, slug,  pk):
     return response
 
 
+@login_required(login_url='login')
+def download_award(request, slug,  pk):
+    company = User.objects.get(slug=slug)
+    poll = Leaderboard.objects.get(organizer=company, id=pk)
+    nominees = poll.nominees
+
+    # Initialize variables to store the highest vote count and the corresponding nominee name
+    highest_vote_count = 0
+    highest_vote_nominee = None
+
+    # Iterate through the list of nominees to find the one with the highest vote count
+    for nominee in nominees:
+        vote_count = nominee.get('vote_count', 0)
+        if vote_count > highest_vote_count:
+            highest_vote_count = vote_count
+            highest_vote_nominee = nominee.get('name')
+
+    # Check if a nominee with the highest vote count was found
+    if highest_vote_nominee:
+        # Use the nominee name with the highest vote count
+        awardee_name = highest_vote_nominee
+    else:
+        # If no nominee was found, set a default name
+        awardee_name = "No Awardee"
+
+    title = None
+    company_name = None
+
+    certificate_data = generate_certificate(
+        awardee_name, company_name, poll.month, title)
+
+    # Create an HTTP response with the certificate image data
+    response = HttpResponse(content_type='image/png')
+    response['Content-Disposition'] = f'attachment; filename="{awardee_name}-{poll.title}.png"'
+    response.write(certificate_data.getvalue())
+
+    return response
+
+
+# @login_required(login_url='login')
 def generate_certificate(awardee_name, company_name, month, title):
 
     month = month.replace("-", " ")
+    # Load the background template
+    template = Image.open('templates/certificate.png')
 
-    template = cv2.imread('templates/certy.png')
+    # Create a drawing object
+    draw = ImageDraw.Draw(template)
 
-    font = cv2.FONT_HERSHEY_DUPLEX
-    font_scale = 3
-    font_thickness = 8
-    text_color = (142, 75, 80)
-    line_type = cv2.LINE_AA
+    # Load a font
+    # Change 'arial.ttf' to the path of your font file
+    font = ImageFont.truetype(
+        'templates/FontsFree-Net-Poppins-Regular.ttf', size=80)
 
-    # Get the size of the text
-    text_size, _ = cv2.getTextSize(
-        awardee_name, font, font_scale, font_thickness)
-    text_width, text_height = text_size
+    # Define text and position
+    text = "This is to certify that John Doe\nhas completed the course"
+    awardee_name = awardee_name
+    presentation_date = month
+    cert_title = title
+    company_name = company_name
+    text_color = (0, 19, 189)
+    # Get text size
+    text_width, text_height = draw.textsize(awardee_name, font=font)
 
-    # Calculate the starting position to center the text horizontally
-    x = (template.shape[1] - text_width) // 2
-    y = 905  # Adjust the y-coordinate as needed
+    # Calculate the position to center text horizontally
+    x = (template.width - text_width) // 2
+    y = 860
 
-    # Render the text at the calculated position
-    cv2.putText(template, awardee_name, (x, y), font, font_scale,
-                text_color, font_thickness, line_type)
-    text = company_name
-    font = cv2.FONT_HERSHEY_DUPLEX
-    font_scale = 3
-    font_thickness = 8
-    text_color = (142, 75, 80)
-    line_type = cv2.LINE_AA
+    # Define font thickness
+    font_thickness = 2
+    text_position = (100, 450)
 
-    # Get the width and height of the text
-    text_size, _ = cv2.getTextSize(text, font, font_scale, font_thickness)
+    # Draw text on the template
+    draw.text((x, y), awardee_name, fill=text_color,
+              font=font, stroke_width=font_thickness)
 
-    # Calculate the starting position for right alignment
-    text_width = text_size[0]
-    text_height = text_size[1]
-    # Adjust the Y position as needed
-    position = (template.shape[1] - text_width - 10, 113)
+    font_title = ImageFont.truetype(
+        'templates/FontsFree-Net-Poppins-Regular.ttf', size=64)
 
-    # Render the text with right alignment
-    cv2.putText(template, text, position, font, font_scale,
-                text_color, font_thickness, line_type)
+    text_width_title, text_height_title = draw.textsize(
+        cert_title, font=font_title)
 
-    # Define font sizes and colors
-    month_font_scale = 2
-    title_font_scale = 1.5
-    font_thicknessx = 5
-    text_color = (0, 0, 0)  # Black color
+    # Calculate the position to center text horizontally
+    x_title = (template.width - text_width_title) // 2
 
-    # Get the size of the month text
-    month_text_size, _ = cv2.getTextSize(
-        month, font, month_font_scale, font_thicknessx)
-    month_text_width, _ = month_text_size
+    draw.text((x_title, 615), cert_title, fill=(0, 0, 0),
+              font=font_title, stroke_width=font_thickness)
 
-    # Calculate the starting position to center the month text horizontally
-    month_x = (template.shape[1] - month_text_width) // 2
-    month_y = 1130  # Adjust the y-coordinate as needed
+    font_date = ImageFont.truetype(
+        'templates/FontsFree-Net-Poppins-Regular.ttf', size=48)
 
-    # Get the size of the title text
-    title_text_size, _ = cv2.getTextSize(
-        title, font, title_font_scale, font_thicknessx)
-    title_text_width, _ = title_text_size
+    draw.text((905, 1240), presentation_date, fill=(0, 0, 0),
+              font=font_date, stroke_width=font_thickness)
 
-    # Calculate the starting position to center the title text horizontally
-    title_x = (template.shape[1] - title_text_width) // 2
-    title_y = 647  # Adjust the y-coordinate as needed
+    text_width_company_name, text_height_company_name = draw.textsize(
+        company_name, font=font)
 
-    # Render the month text at the calculated position
-    cv2.putText(template, month, (month_x, month_y), font,
-                month_font_scale, text_color, font_thickness, line_type)
+    # Calculate the position to center text horizontally
+    x_company = (template.width - text_width_company_name)
 
-    # Render the title text at the calculated position
-    cv2.putText(template, title, (title_x, title_y), font,
-                1.5, text_color, 2, line_type)
+    draw.text((x_company, 90), company_name, fill=text_color,
+              font=font, stroke_width=font_thickness)
 
-    _, buffer = cv2.imencode('.png', template)
+    image_stream = io.BytesIO()
+    template.save(image_stream, format='PNG')
+    image_stream.seek(0)
 
-    return io.BytesIO(buffer)
+    return image_stream
+
+
+@login_required(login_url='login')
+def generate_random_certificate(request, slug):
+
+    company = User.objects.get(slug=slug)
+    company_name = company.company_name
+    current_date = datetime.today()
+    formatted_date = current_date.strftime('%d-%B-%Y')
+    if request.method == 'POST':
+        awardee = request.POST['awardee_name']
+        title = request.POST['title']
+        date = request.POST['date']
+
+        template = cv2.imread('templates/award.png')
+
+        font = cv2.FONT_HERSHEY_DUPLEX
+        font_scale = 3
+        font_thickness = 8
+        text_color = (142, 75, 80)
+        line_type = cv2.LINE_AA
+
+        # Get the size of the text
+        text_size, _ = cv2.getTextSize(
+            awardee, font, font_scale, font_thickness)
+        text_width, text_height = text_size
+
+        # Calculate the starting position to center the text horizontally
+        x = (template.shape[1] - text_width) // 2
+        y = 905  # Adjust the y-coordinate as needed
+
+        # Render the text at the calculated position
+        cv2.putText(template, awardee, (x, y), font, font_scale,
+                    text_color, font_thickness, line_type)
+        text = company_name
+        font = cv2.FONT_HERSHEY_DUPLEX
+        font_scale = 3
+        font_thickness = 8
+        text_color = (142, 75, 80)
+        line_type = cv2.LINE_AA
+
+        # Get the width and height of the text
+        text_size, _ = cv2.getTextSize(text, font, font_scale, font_thickness)
+
+        # Calculate the starting position for right alignment
+        text_width = text_size[0]
+        text_height = text_size[1]
+        # Adjust the Y position as needed
+        position = (template.shape[1] - text_width - 10, 113)
+
+        # Render the text with right alignment
+        cv2.putText(template, text, position, font, font_scale,
+                    text_color, font_thickness, line_type)
+
+        # Define font sizes and colors
+        month_font_scale = 2
+        title_font_scale = 1.5
+        font_thicknessx = 5
+        text_color = (0, 0, 0)  # Black color
+
+        # Get the size of the month text
+        # month_text_size, _ = cv2.getTextSize(
+        #     month, font, month_font_scale, font_thicknessx)
+        # month_text_width, _ = month_text_size
+
+        # Calculate the starting position to center the month text horizontally
+        # month_x = (template.shape[1] - month_text_width) // 2
+        # month_y = 1130  # Adjust the y-coordinate as needed
+
+        # Get the size of the title text
+        title_text_size, _ = cv2.getTextSize(
+            title, font, title_font_scale, font_thicknessx)
+        title_text_width, _ = title_text_size
+
+        # Calculate the starting position to center the title text horizontally
+        title_x = (template.shape[1] - title_text_width) // 2
+        title_y = 647  # Adjust the y-coordinate as needed
+
+        # # Render the month text at the calculated position
+        # cv2.putText(template, month, (month_x, month_y), font,
+        #             month_font_scale, text_color, font_thickness, line_type)
+        cv2.putText(template, date, (890, 1290),
+                    cv2.FONT_HERSHEY_DUPLEX, 1.5, (00, 00, 00), 2, cv2.LINE_AA)
+        # Render the title text at the calculated position
+        cv2.putText(template, title, (title_x, title_y), font,
+                    1.5, text_color, 2, line_type)
+
+        _, buffer = cv2.imencode('.png', template)
+
+        cert = io.BytesIO(buffer)
+
+        response = HttpResponse(content_type='image/png')
+        response['Content-Disposition'] = f'attachment; filename="{awardee}-{title}.png"'
+        response.write(cert.getvalue())
+
+        return response
+
+    context = {'today': formatted_date}
+    return render(request, 'gen-cert.html', context)
+
+
+@login_required(login_url='login')
+def leaderboard_rank(request, slug, month, action, nominee_name):
+    company = User.objects.get(slug=slug)
+    leaderboard = Leaderboard.objects.get(organizer=company, month=month)
+
+    nominees_data = leaderboard.nominees
+
+    if request.method == 'POST':
+        new_nominees = []
+        employee_name = request.POST.get('employee_name')
+
+        # for name in employee_name:
+        new_nominee = {
+            'name': employee_name,
+            'vote_count': 0  # Default vote_count
+        }
+        new_nominees.append(new_nominee)
+        leaderboard.nominees = new_nominees
+        leaderboard.save()
+        return redirect('dashboard', slug)
+
+    nominee_name = nominee_name
+    print(nominee_name)
+    for nominee in nominees_data:
+        if nominee['name'] == nominee_name and action == 'add':
+            # if action == 'add':
+            nominee['vote_count'] += 1
+            # return redirect('dashboard', slug)
+        if nominee['name'] == nominee_name and action == 'remove':
+            nominee['vote_count'] -= 1
+            # return redirect('dashboard', slug)
+
+        # else:
+        #     return redirect('dashboard', slug)
+
+    leaderboard.nominees = nominees_data
+    leaderboard.save()
+    return redirect('dashboard', slug)
+
+
+@login_required(login_url='login')
+def add_leaderboard(request, slug, month,):
+    company = User.objects.get(slug=slug)
+    leaderboard = Leaderboard.objects.get(organizer=company, month=month)
+
+    if request.method == 'POST':
+        new_nominees = leaderboard.nominees
+        employee_name = request.POST.get('employee_name')
+
+        # for name in employee_name:
+        new_nominee = {
+            'name': employee_name,
+            'vote_count': 0  # Default vote_count
+        }
+        new_nominees.append(new_nominee)
+        leaderboard.nominees = new_nominees
+        leaderboard.save()
+        return redirect('dashboard', slug)
+
+
+def signout(request):
+    logout(request)
+    return redirect('login')

@@ -10,27 +10,11 @@
     />
     <title>AcclaimTrove Dashboard</title>
     <!-- plugins:css -->
-    <link rel="stylesheet" href="{% static 'vendors/feather/feather.css' %}" />
-    <link
-      rel="stylesheet"
-      href="{% static 'vendors/ti-icons/css/themify-icons.css' %}"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'vendors/css/vendor.bundle.base.css' %}"
-    />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css"
       integrity="sha384-zCbKRCUGaJDkqS1kPbPd7TveP5iyJE0EjAuZQTgFLD2ylzuqKfdKlfG/eSrtxUkn" crossorigin="anonymous">
     <!-- endinject -->
     <!-- Plugin css for this page -->
-    <link
-      rel="stylesheet"
-      href="{% static 'vendors/datatables.net-bs4/dataTables.bootstrap4.css' %}"
-    />
-    <link
-      rel="stylesheet"
-      href="{% static 'vendors/ti-icons/css/themify-icons.css' %}"
-    />
+    
     <link
       rel="stylesheet"
       type="text/css"
@@ -85,7 +69,7 @@
                 class="dropdown-menu dropdown-menu-right navbar-dropdown"
                 aria-labelledby="profileDropdown"
               >
-                <a class="dropdown-item">
+                <a class="dropdown-item" href="{% url 'signout' %}">
                   <i class="ti-power-off text-primary"></i>
                   Logout
                 </a>
@@ -114,63 +98,83 @@
                 <div class="row">
                   <div class="col-6 col-xl-8 mb-4 mb-xl-0">
                     <!-- <h3 class="font-weight-bold">Welcome {{company.company_name}}</h3> -->
-                    
-                  </div>
-                  <div class="col-6 col-xl-4">
-                    <div class="justify-content-end d-flex">
+                    <div class="">
                       <div class="dropdown flex-md-grow-1 flex-xl-grow-0">
                         <a class="btn btn-primary" href="{% url 'c-poll' company.slug %}">
                           Create New Poll
                         </a>
                       </div>
                     </div>
+                    
                   </div>
+                  <div class="col-6 col-xl-4">
+                    <div class="justify-content-end d-flex">
+                      
+                      <div class="dropdown flex-md-grow-1 flex-xl-grow-0">
+                        <a class="btn btn-outline-primary" href="{% url 'random-cert' company.slug %}">
+                          Generate Award
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- <div class="col-6 col-xl-4">
+                    <div class="justify-content-end d-flex">
+                      <div class="dropdown flex-md-grow-1 flex-xl-grow-0">
+                        <a class="btn btn-primary" href="{% url 'random-cert' company.slug %}">
+                          Generate Award
+                        </a>
+                      </div>
+                    </div>
+                  </div> -->
                 </div>
               </div>
             </div>
 
             <div class="row">
+            
+              {% if active_polls %}
               <div class="col-md-12 grid-margin">
                 <div class="row">
                   <div class="col-12 col-xl-8 mb-4 mb-xl-0">
                     <h3 class="font-weight-bold">Active Polls</h3>
-            
+              
                   </div>
                 </div>
               </div>
+              <div class="col-md-8">
               {% regroup active_polls by vote_count as grouped_active_polls %}
               {% for group in grouped_active_polls|dictsort:"grouper" %}
               {% for nom in group.list %}
-              <div class="col-md-12 grid-margin">
+              
                 <div class="card" id="accordionExample{{nom.month}}">
                   <div class="card-body">
                     <p class="card-title collapsed" type="button" data-toggle="collapse" data-target="#collapseOne{{nom.id}}">
                       <span style="display: flex; justify-content: space-between;">
-            
+              
                         <span>{{nom.title}}</span>
-            
+              
                         <!-- <a href="{% url 'print_cert' company.slug nom.id %}"><i class="fa fa-print"></i></a> -->
                       </span>
                     </p>
                     <div class="table-responsive collapse show" id="collapseOne{{nom.id}}" aria-labelledby="headingOne"
                       data-parent="#accordionExample{{nom.month}}">
                       <table class="table table-striped table-borderless">
-                        <thead>
-                          <tr>
-                            <th>Nominee</th>
-                            <th>Position</th>
-                            <th>Vote</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {% for nominee in nom.nominees|dictsortreversed:"vote_count" %}
-                          <tr>
-                            <td class="font-weight-bold">{{nominee.name}}</td>
-                            <td>{{nominee.position}}</td>
-                            <td>{{nominee.vote_count}}</td>
-                          </tr>
-                          {% endfor %}
-                        </tbody>
+                          <thead>
+                            <tr>
+                              <th>Nominee</th>
+                              <th>Position</th>
+                              <th>Vote</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for nominee in nom.nominees|dictsortreversed:"vote_count" %}
+                            <tr>
+                              <td class="font-weight-bold">{{nominee.name}}</td>
+                              <td>{{nominee.position}}</td>
+                              <td>{{nominee.vote_count}}</td>
+                            </tr>
+                            {% endfor %}
+                          </tbody>
                       </table>
                     </div>
                     <br>
@@ -178,11 +182,11 @@
                       <span><a href="{% url 'c-vote' company.slug nom.title %}" class="btn btn-outline-primary" aria-label="Edit">
                           <i class="fa fa-poll"></i>
                         </a></span>
-                    
+              
                       <span><a href="{% url 'e-poll' company.slug nom.id %}" class="btn btn-outline-primary" aria-label="Edit">
                           <i class="fa fa-edit"></i>
                         </a></span>
-                    
+              
                       <button onclick="copyPollURL()" class="btn btn-outline-primary" id="PollURL"
                         value="http://127.0.0.1:8000/vote/{{company.slug}}/{{nom.month}}/{{nom.id}}" aria-label="Edit">
                         <i class="fa fa-link"></i>
@@ -190,33 +194,97 @@
                     </span>
                   </div>
                 </div>
+                <br>
+              {% endfor %}
+              {% endfor %}
+              
               </div>
-              {% endfor %}
-              {% endfor %}
+              
+              
+              {% else %}
+              <div class="col-md-8">
+                <div class="row">
+                  <div class="col-12 col-xl-8 mb-4 mb-xl-0">
+                    <h3 class="font-weight-bold">No Active Polls - Click Create New Poll to Get Started</h3>
+              
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+
+              
+              <div class="col-md-4 ">
+                <div class="card">
+                  <div class="card-body">
+                    <h4 class="card-title">Leaderboard  {{poll.month}}</h4>
+                    <div class="table-responsive">
+                      <table class="table table-striped table-borderless">
+                        <thead>
+                          <tr>
+                            <th>Nominee</th>
+                            <th class="text-center">Points</th>
+                            <th class="text-center">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for nominee in leaderboard %}
+                          <tr>
+                            <td>{{ nominee.name }}</td>
+                            <td class="font-weight-bold text-center">{{ nominee.vote_count }}</td>
+                            <td class="font-weight-bold text-center"> <a href="{% url 'leaderboard_rank' company.slug  poll.month add nominee.name   %}"><i class="fa fa-plus"></i></a> <a href="{% url 'leaderboard_rank' company.slug  poll.month remove  nominee.name %}"><i class="fa fa-minus"></i></a> </td>
+                          
+                          </tr>
+                          {% endfor %}
+                          
             
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    <!-- <div id="additionalFields"></div>
+                    <button type="button" class="btn btn-outline-primary" id="addFieldBtn">
+                      +
+                    </button> -->
+                    <!-- <div class="add-items d-flex mb-0 mt-2">
+            										<input type="text" class="form-control todo-list-input"  placeholder="Add new task">
+            										<button class="add btn btn-icon text-primary todo-list-add-btn bg-transparent"><i class="icon-circle-plus"></i></button>
+            									</div> -->
+                  </div>
+                  <form action="{% url 'add_leaderboard' company.slug  poll.month   %}" method="POST">
+                    {% csrf_token %}
+                    <div class="container" id="initialFields">
+                      <div class="form-group">
+                        <input type="text" class="form-control" id="inputEmployeeName" name="employee_name" 
+                          placeholder="Elon Musk">
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
             </div>
+
+         
             
             <div class="row">
+              <br>
               <div class="col-md-12 grid-margin">
                 <div class="row">
                   <div class="col-12 col-xl-8 mb-4 mb-xl-0">
                     <h3 class="font-weight-bold">Past Polls</h3>
               
                   </div>
-                  </div>
+                </div>
               </div>
-              {% regroup past_polls by vote_count as grouped_past_polls %}
-              {% for group in grouped_past_polls|dictsort:"grouper" %}
-              {% for nom in group.list %}
-              <div class="col-md-12 grid-margin">
+              <div class="col-md-8">
+                {% regroup past_polls by vote_count as grouped_past_polls %}
+                {% for group in grouped_past_polls|dictsort:"grouper" %}
+                {% for nom in group.list %}
                 <div class="card" id="accordionExample{{nom.month}}">
                   <div class="card-body">
                     <p class="card-title collapsed" type="button" data-toggle="collapse" data-target="#collapseOne{{nom.month}}">
                       <span style="display: flex; justify-content: space-between;">
-                        
                         <span>{{nom.title}}</span>
-                        
-                       <a href="{% url 'print_cert' company.slug nom.id %}"><i class="fa fa-certificate"></i></a> 
+                        <a href="{% url 'print_cert' company.slug nom.id %}"><i class="fa fa-certificate"></i></a>
                       </span>
                     </p>
                     <div class="table-responsive collapse show" id="collapseOne{{nom.month}}" aria-labelledby="headingOne"
@@ -240,16 +308,55 @@
                         </tbody>
                       </table>
                     </div>
-                    <span><a href="{% url 'c-vote' company.slug nom.title %}" class="btn btn-outline-primary" aria-label="Edit">
+                    <!-- <span><a href="{% url 'c-vote' company.slug nom.title %}" class="btn btn-outline-primary" aria-label="Edit">
                         <i class="fa fa-poll"></i>
-                      </a></span>
+                      </a></span> -->
                   </div>
                 </div>
+                <br>
+                {% endfor %}
+                {% endfor %}
               </div>
-              {% endfor %}
-              {% endfor %}
-
+            
+              <div class="col-md-4">
+                {% regroup past_leaderboards by vote_count as grouped_past_leaderboards %}
+                {% for group in grouped_past_leaderboards|dictsort:"grouper" %}
+                {% for nom in group.list %}
+                <div class="card" id="accordionExampleLd{{nom.id}}">
+                  <div class="card-body">
+                    <span style="display: flex; justify-content: space-between;">
+                      <h4 class="card-title" class="card-title collapsed" type="button" data-toggle="collapse" data-target="#collapseOneLd{{nom.id}}">Leaderboard  {{nom.month}}</h4>
+                      <a href="{% url 'print_badge' company.slug nom.id %}"><i class="fa fa-award"></i></a>
+                    </span>
+                    <div class="table-responsive collapse show" id="collapseOneLd{{nom.id}}" aria-labelledby="headingOne"
+                      data-parent="#accordionExampleLd{{nom.id}}">
+                      <table class="table table-striped table-borderless">
+                        <thead>
+                          <tr>
+                            <th>Nominee</th>
+                            <th class="text-center">Points</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for nominee in nom.nominees|dictsortreversed:"vote_count" %}
+                          <tr>
+                            <td>{{ nominee.name }}</td>
+                            <td class="font-weight-bold text-center">{{ nominee.vote_count }}</td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                <br>
+                {% endfor %}
+                {% endfor %}
+              
+              </div>
+              
             </div>
+
           </div>
           <!-- content-wrapper ends -->
           <!-- partial:partials/_footer.html -->
@@ -259,7 +366,7 @@
             >
               <span
                 class="text-muted text-center text-sm-left d-block d-sm-inline-block"
-                >Copyright © 2021. Premium
+                >Copyright © {% now 'Y' %}. Premium
                 <a href="https://www.bootstrapdash.com/" target="_blank"
                   >Bootstrap admin template</a
                 >
@@ -336,6 +443,29 @@
     <!-- Custom js for this page-->
     <script src="{% static 'js/dashboard.js' %}"></script>
     <script src="{% static 'js/Chart.roundedBarCharts.js' %}"></script>
+    <script>
+      document.getElementById('addFieldBtn').addEventListener('click', function () {
+        var additionalFieldsContainer = document.getElementById('additionalFields');
+        var initialFieldsContainer = document.getElementById('initialFields');
+
+        // Clone the structure of the initial form group only if it is visible
+        if (initialFieldsContainer.style.display !== 'none') {
+          var newFormGroup = initialFieldsContainer.cloneNode(true);
+
+          // Clear input values
+          var inputElements = newFormGroup.querySelectorAll('input');
+          inputElements.forEach(function (input) {
+            input.value = ''; // Clear the input value
+          });
+
+      
+
+          // Append the cloned form group to the container
+          additionalFieldsContainer.appendChild(newFormGroup);
+        }
+      });
+    </script>
+
     <!-- End custom js for this page-->
   </body>
 </html>
