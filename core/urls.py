@@ -4,7 +4,8 @@ from .views import RegisterUser, LoginUser, Dashboard
 
 urlpatterns = [
     path('', views.home, name='home'),
-    path('contact', views.contact, name='contact'),
+    path('buy_credit/', views.buy_credit, name='buy_credit'),
+    path('contact/', views.contact, name='contact'),
     path('register/', RegisterUser.as_view(), name='register'),
     path('login/', LoginUser.as_view(), name='login'),
     path('dashboard/<str:slug>/', Dashboard.as_view(), name='dashboard'),
@@ -13,7 +14,7 @@ urlpatterns = [
          views.edit_poll, name='e-poll'),
     path('poll/<str:slug>/<str:title>/',
          views.caste_vote, name='c-vote'),
-    path('cn-vote/<str:slug>/<str:slugx>/<str:slugz>/<int:pk>/',
+    path('cn-vote/<str:slug>/<int:pk>/<str:slugz>/',
          views.count_vote, name='cn-vote'),
     path('gen-cert/<str:slug>/<int:pk>/',
          views.download_certificate, name="print_cert"),
